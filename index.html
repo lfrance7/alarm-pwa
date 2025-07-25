@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>매일 알람 웹앱</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- PWA 필수 설정 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="icon.png">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js');
+      });
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    #log {
+      margin-top: 20px;
+      white-space: pre-wrap;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>⏰ 매일 알람 웹앱</h1>
+  <p>오전 10시부터 오후 8시 20분까지 40분 간격으로 알람이 울립니다.</p>
+  <div id="log"></div>
+
+  <audio id="alarmSound" src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" preload="auto"></audio>
+
+  <script>
+    function generateAlarmTimes(startTime, endTime, intervalMinutes) {
+      const times = [];
+      const [startHour, startMin] = startTime.split(":").map(Number);
+      const [endHour, endMin] = endTime.split(":").map(Number);
+      let current = new Date();
+      current.setHours(startHour, startMin, 0, 0);
+      const end = new Date();
+      end.setHours(endHour, endMin, 0, 0);
+
+      while (current <= end) {
+        const hh = current.getHours().toString().padStart(2, '0');
+        const mm = current.getMinutes().toString().padStart(2, '0');
+        times.push(`${hh}:${mm}`);
+        current = new Date(current.getTime() + intervalMinutes * 60000);
+      }
+
+      return times;
+    }
+
+    const alarmTimes = generateAlarmTimes("10:00", "20:20", 40);
+    const logDiv = document.getElementById("log");
+    const alarmSound = document.getElementById("alarmSound");
+
+    if (Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
+
+    setInterval(() => {
+      const now = new Date();
+      const hh = now.getHours().toString().padStart(2, '0');
+      const mm = now.getMinutes().toString().padStart(2, '0');
+      const currentTime = `${hh}:${mm}`;
+
+      if (alarmTimes.includes(currentTime)) {
+        const msg = `[${currentTime}] ⏰ 알람!`;
+        logDiv.textContent += msg + "\n";
+        alarmSound.play();
+
+        if (Notification.permission === "granted") {
+          new Notification("알람", { body: `현재 시각: ${currentTime}` });
+        }
+      }
+    }, 1000);
+  </script>
+</body>
+</html>
