@@ -2,10 +2,10 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>매일 알람 웹앱</title>
+  <title>사용자 설정 알람 웹앱</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
-  <!-- PWA 필수 설정 -->
+
+  <!-- PWA 설정 -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#ffffff">
   <link rel="icon" href="icon.png">
@@ -19,34 +19,60 @@
 
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
+      font-family: sans-serif;
       padding: 20px;
+      max-width: 500px;
+      margin: auto;
     }
-    h1 {
-      color: #333;
+    h1 { color: #333; }
+    label { display: block; margin: 10px 0 5px; }
+    input, button {
+      padding: 8px;
+      width: 100%;
+      box-sizing: border-box;
+      margin-bottom: 15px;
     }
     #log {
-      margin-top: 20px;
       white-space: pre-wrap;
       font-size: 14px;
+      border-top: 1px solid #ccc;
+      padding-top: 10px;
     }
   </style>
 </head>
 <body>
-  <h1>⏰ 매일 알람 웹앱</h1>
-  <p>오전 10시부터 오후 8시 20분까지 40분 간격으로 알람이 울립니다.</p>
-  <div id="log"></div>
+  <h1>⏰ 사용자 설정 알람 웹앱</h1>
 
+  <form id="alarmForm">
+    <label for="startTime">시작 시간:</label>
+    <input type="time" id="startTime" required value="10:00">
+
+    <label for="interval">반복 간격 (분):</label>
+    <input type="number" id="interval" value="40" min="1" required>
+
+    <label for="endTime">종료 시간:</label>
+    <input type="time" id="endTime" required value="20:20">
+
+    <button type="submit">알람 시작</button>
+  </form>
+
+  <div id="log"></div>
   <audio id="alarmSound" src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" preload="auto"></audio>
 
   <script>
+    let alarmTimes = [];
+
     function generateAlarmTimes(startTime, endTime, intervalMinutes) {
       const times = [];
+      const now = new Date();
+
       const [startHour, startMin] = startTime.split(":").map(Number);
       const [endHour, endMin] = endTime.split(":").map(Number);
-      let current = new Date();
+
+      let current = new Date(now);
       current.setHours(startHour, startMin, 0, 0);
-      const end = new Date();
+
+      const end = new Date(now);
       end.setHours(endHour, endMin, 0, 0);
 
       while (current <= end) {
@@ -59,9 +85,16 @@
       return times;
     }
 
-    const alarmTimes = generateAlarmTimes("10:00", "20:20", 40);
-    const logDiv = document.getElementById("log");
-    const alarmSound = document.getElementById("alarmSound");
+    document.getElementById("alarmForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const start = document.getElementById("startTime").value;
+      const end = document.getElementById("endTime").value;
+      const interval = parseInt(document.getElementById("interval").value);
+      alarmTimes = generateAlarmTimes(start, end, interval);
+
+      const log = document.getElementById("log");
+      log.textContent = `[알람 설정 완료]\n- 시작: ${start}\n- 종료: ${end}\n- 간격: ${interval}분\n`;
+    });
 
     if (Notification.permission !== "granted") {
       Notification.requestPermission();
@@ -74,10 +107,9 @@
       const currentTime = `${hh}:${mm}`;
 
       if (alarmTimes.includes(currentTime)) {
-        const msg = `[${currentTime}] ⏰ 알람!`;
-        logDiv.textContent += msg + "\n";
-        alarmSound.play();
-
+        const log = document.getElementById("log");
+        log.textContent += `\n[${currentTime}] ⏰ 알람!`;
+        document.getElementById("alarmSound").play();
         if (Notification.permission === "granted") {
           new Notification("알람", { body: `현재 시각: ${currentTime}` });
         }

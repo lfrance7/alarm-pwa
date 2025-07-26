@@ -1,4 +1,4 @@
-// sw.js
+// sw.js - 서비스워커: PWA 캐싱 기능
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open('alarm-cache-v1').then(cache => {
